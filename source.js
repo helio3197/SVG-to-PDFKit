@@ -2433,7 +2433,7 @@ var SVGtoPDF = function(doc, svg, x, y, options) {
           currentElem._defRot = currentElem.chooseValue(currentElem._rot[currentElem._rot.length - 1], parentElem && parentElem._defRot, 0);
           if (currentElem.name === 'textPath') {currentElem._y = [];}
           let fontOptions = {fauxItalic: false, fauxBold: false},
-              fontNameorLink = fontCallback(currentElem.get('font-family'), currentElem.get('font-weight') === 'bold', currentElem.get('font-style') === 'italic', fontOptions);
+              fontNameorLink = fontCallback(currentElem.get('font-family'), currentElem.get('font-weight'), currentElem.get('font-style') === 'italic', fontOptions);
           try {
             doc.font(fontNameorLink);
           } catch(e) {
@@ -2637,42 +2637,45 @@ var SVGtoPDF = function(doc, svg, x, y, options) {
       };
     }
     if (typeof fontCallback !== 'function') {
-      fontCallback = function(family, bold, italic, fontOptions) {
+      fontCallback = function(family, weight, italic, fontOptions) {
         // Check if the font is already registered in the document
+        family = family.replace(/\s/g, '');
+        const baseFontFamily = family + '-400';
+        const bold = weight === 'bold' || parseInt(weight, 10) >= 500;
         if (bold && italic) {
-          if (doc._registeredFonts.hasOwnProperty(family + '-BoldItalic')) {
-            return family + '-BoldItalic';
-          } else if (doc._registeredFonts.hasOwnProperty(family + '-Italic')) {
+          if (doc._registeredFonts.hasOwnProperty(family + `-Italic${weight}`)) {
+            return family + `-Italic${weight}`;
+          } else if (doc._registeredFonts.hasOwnProperty(family + '-Italic400')) {
             fontOptions.fauxBold = true;
-            return family + '-Italic';
-          } else if (doc._registeredFonts.hasOwnProperty(family + '-Bold')) {
+            return family + '-Italic400';
+          } else if (doc._registeredFonts.hasOwnProperty(family + `-${weight}`)) {
             fontOptions.fauxItalic = true;
-            return family + '-Bold';
-          } else if (doc._registeredFonts.hasOwnProperty(family)) {
+            return family + `-${weight}`;
+          } else if (doc._registeredFonts.hasOwnProperty(baseFontFamily)) {
             fontOptions.fauxBold = true;
             fontOptions.fauxItalic = true;
-            return family;
+            return baseFontFamily;
           }
         }
         if (bold && !italic) {
-          if (doc._registeredFonts.hasOwnProperty(family + '-Bold')) {
-            return family + '-Bold';
-          } else if (doc._registeredFonts.hasOwnProperty(family)) {
+          if (doc._registeredFonts.hasOwnProperty(family + `-${weight}`)) {
+            return family + `-${weight}`;
+          } else if (doc._registeredFonts.hasOwnProperty(baseFontFamily)) {
             fontOptions.fauxBold = true;
-            return family;
+            return baseFontFamily;
           }
         }
         if (!bold && italic) {
-          if (doc._registeredFonts.hasOwnProperty(family + '-Italic')) {
-            return family + '-Italic';
-          } else if (doc._registeredFonts.hasOwnProperty(family)) {
+          if (doc._registeredFonts.hasOwnProperty(family + '-Italic400')) {
+            return family + '-Italic400';
+          } else if (doc._registeredFonts.hasOwnProperty(baseFontFamily)) {
             fontOptions.fauxItalic = true;
-            return family;
+            return baseFontFamily;
           }
         }
         if (!bold && !italic) {
-          if (doc._registeredFonts.hasOwnProperty(family)) {
-            return family;
+          if (doc._registeredFonts.hasOwnProperty(baseFontFamily)) {
+            return baseFontFamily;
           }
         }
         // Use standard fonts as fallback
